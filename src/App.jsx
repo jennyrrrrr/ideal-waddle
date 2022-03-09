@@ -1,9 +1,10 @@
-import { scaleLinear } from 'd3'
+import { scaleLinear, scaleLog, scaleBand, line } from 'd3'
 import './App.css'
 import debounce from 'lodash.debounce';
 
 import usvideos from "./cleaned_df_11";
 import usvideos_max from "./cleaned_df_11_max";
+import usvideos_music from "./cleaned_df_music_all";
 
 import React, { useState, useCallback } from "react"; /* ADD THIS LINE FOR STATE MANAGMENT */
 
@@ -81,14 +82,19 @@ function App() {
   var hover = null
   const [selectedHover, setSelectedHover] = useState(hover);
 
-  const hovehandler = event => {
-    setSelectedHover
-  };
+  // const hovehandler = event => {
+  //   setSelectedHover
+  // };
   
-  
-  useCallback(
-    debounce(hovehandler, 300)
+  const dbsetSelectedPoint = useCallback(
+    debounce(setSelectedPoint, 300)
   , []);
+
+  
+  const dbsetSelectedHover = useCallback(
+    debounce(setSelectedHover, 300)
+  , []);
+  
 
   var catHover = null
   const [selectedCatHover, setSelectedCatHover] = useState(catHover);
@@ -97,6 +103,16 @@ function App() {
     var col = []
     for (var i = 0; i < usvideos_max.length; i += 1) {
       if (usvideos_max[i][col_name] == value) {
+        col.push(i)
+      }
+    };
+    return col;
+  }
+
+  function getIndexByValue2(col_name, value) {
+    var col = []
+    for (var i = 0; i < usvideos_music.length; i += 1) {
+      if (usvideos_music[i][col_name] == value) {
         col.push(i)
       }
     };
@@ -145,43 +161,43 @@ function App() {
       <rect
       width={270}
       height={100}
-      x={90 + parseInt(usvideos_max[selectedPoint]['trending_date']) / 365 * 1100}
-      y={515 - usvideos_max[selectedPoint]['view_count'] / 264407389 * 500}
+      x={25 + _scaleX2(parseInt(usvideos_max[selectedPoint]['trending_date']))}
+      y={_scaleY2(usvideos_max[selectedPoint]['view_count'])}
       fill="white"
       stroke={"black"}
       ></rect>
         <text 
-          x={95 + parseInt(usvideos_max[selectedPoint]['trending_date']) / 365 * 1100}
-          y={530 - usvideos_max[selectedPoint]['view_count'] / 264407389 * 500}
+          x={30 + _scaleX2(parseInt(usvideos_max[selectedPoint]['trending_date']))}
+          y={20 + _scaleY2(usvideos_max[selectedPoint]['view_count'])}
            >
             <tspan 
-              x={95 + parseInt(usvideos_max[selectedPoint]['trending_date']) / 365 * 1100} 
+              x={30 + _scaleX2(parseInt(usvideos_max[selectedPoint]['trending_date']))} 
               >
                 {usvideos_max[selectedPoint]["title"].substring(0, 26) + '...'}
             </tspan>
             <tspan
-              x={95 + parseInt(usvideos_max[selectedPoint]['trending_date']) / 365 * 1100} 
+              x={30 + _scaleX2(parseInt(usvideos_max[selectedPoint]['trending_date']) )} 
               dy={20}
               fontSize={12}
               >
               {"Channel: " + usvideos_max[selectedPoint]["channelTitle"]}
             </tspan>
             <tspan 
-              x={95 + parseInt(usvideos_max[selectedPoint]['trending_date']) / 365 * 1100} 
+              x={30 + _scaleX2(parseInt(usvideos_max[selectedPoint]['trending_date']))} 
               dy={18}
               fontSize={12}
               >
                 {"Category : " + cat_id_to_names[usvideos_max[selectedPoint]["categoryId"]]}
             </tspan>
             <tspan
-              x={95 + parseInt(usvideos_max[selectedPoint]['trending_date']) / 365 * 1100} 
+              x={30 + _scaleX2(parseInt(usvideos_max[selectedPoint]['trending_date']))} 
               dy={18}
               fontSize={12}
               >
               {"Like vs. Dislike: " + usvideos_max[selectedPoint]["likes"] + ":" + usvideos_max[selectedPoint]["dislikes"]}
             </tspan>
             <tspan
-              x={95 + parseInt(usvideos_max[selectedPoint]['trending_date']) / 365 * 1100} 
+              x={30 + _scaleX2(parseInt(usvideos_max[selectedPoint]['trending_date']))} 
               dy={18}
               fontSize={12}
               >
@@ -221,12 +237,63 @@ function App() {
 
   const _scaleX2 = scaleLinear()
                     .domain([0, 365])
-                    .range([0, 1100]);
+                    .range([70, 1100]);
 
-  const _scaleY2 = scaleLinear()
-                    .domain([0, 264407389])
+  const _scaleY2 = scaleLog()
+                    .domain([59832, 264407389])
                     .range([550, 50]);
 
+
+  const months = [
+                      "Jan",
+                      "Feb",
+                      "Mar",
+                      "Apr",
+                      "May",
+                      "June",
+                      "Jul",
+                      "Aug",
+                      "Sept",
+                      "Oct",
+                      "Nov",
+                      "Dec",
+                    ];
+  
+  const _scaleDate = scaleBand()
+    .domain(months)
+    .range([70, 1100]);
+
+  function get_unique_Column(name) {
+    var col = []
+    for (var i = 0; i < usvideos_music.length; i += 1) {
+      if (col.includes(usvideos_music[i][name]) == false) {
+        col.push(usvideos_music[i][name])
+      }
+    };
+    return col;
+  }
+
+  const uni_videos = get_unique_Column('video_id')
+
+  const _lineMaker = line()
+    .x((d, i) => {
+       console.log('in x line ',_scaleDate(d[1]))
+      return _scaleDate(months[d[1]]);
+    })
+    .y((d) => {
+      console.log('y', d[1])
+      return _scaleY2(d[0]);
+    });
+
+  function help_form_list(trends_idsss){
+    var li = []
+    for (var i = 0; i < trends_idsss.length; i += 1) {
+      li.push([parseInt(usvideos_music[trends_idsss[i]]['view_count']), usvideos_music[trends_idsss[i]]['trending_date']])
+    }
+    return li
+  }
+
+  // const abc = [[1, 2], [3, 4]]
   return (
     <div style={{ margin: 10 }}>
       <div style={{ display: "flex", alignItems:"center", paddingLeft:"20px"}}> 
@@ -245,25 +312,25 @@ function App() {
                 <circle
                   id={id}
                   className={usvideos_max[id]['categoryId']}
-                  cx={70 + parseInt(usvideos_max[id]['trending_date']) / 365 * 1100} 
-                  cy={560 - usvideos_max[id]['view_count'] / 264407389 * 500} 
+                  cx={_scaleX2(parseInt(usvideos_max[id]['trending_date']))} 
+                  cy={_scaleY2(usvideos_max[id]['view_count'])} 
                   r={selectedHover==id ? (parseInt((usvideos_max[id]['trending_date']) - parseInt(usvideos_max[id]['publishedAt']))/2 + 2):(parseInt((usvideos_max[id]['trending_date']) - parseInt(usvideos_max[id]['publishedAt']))/2)} 
                   fill={cat_cols[cat]} 
-                  opacity={(selectedPoints.includes(id) || selectedHover==id) ? 1.0:0.15}
+                  opacity={(selectedPoints.includes(id) || selectedHover==id) ? 0.8:0.15}
                   stroke={(selectedPoints.includes(id) || selectedHover==id) ? 'black':'white'}
                   onMouseOver={() => {
                     dbsetSelectedHover(id)
                     dbsetSelectedPoint(id)
                   }}
                   onMouseOut={() => {
-                    setSelectedHover(null)
-                    setSelectedPoint(null)
+                    dbsetSelectedHover(null)
+                    dbsetSelectedPoint(null)
                   }}
                 />
               )
             })
           })}
-          {selectedPoint && <HoverText />}
+          {selectedPoint && <HoverText styles="z-index:1000; position: fixed; background-color:'red'"/>}
           {/* number of views for each category*/}
           {cats.map((cat, i) => {
             return (
@@ -336,11 +403,107 @@ function App() {
           <AxisBottom
             strokeWidth={1}
             top={580}
-            left={70}
-            scale={_scaleX2}
+            left={0}
+            scale={_scaleDate}
             fontSize={25}
             stroke={"black"}
-            numTicks={11}
+            // numTicks={11}
+          />
+          {/* text & labels */}
+          <text x={1265} y={13}> Category </text>
+          <text x={1160} y={13}> Total Views </text>
+          <text x={1250} y={13}> | </text>
+          <text x={1210} y={580}> Days </text>
+          <text x={30} y={30}> Views </text>
+        </svg>
+      </div>
+      <div style={{ display: "flex" }}>
+        <svg
+          width={1500}
+          height={650}
+        >
+          {
+          uni_videos.map((vid, i) => {
+            // if (i < 3) {
+              // console.log(vid)
+              var trends_ids = getIndexByValue2('video_id', vid);
+              var li_count = help_form_list(trends_ids);
+              // console.log('li', li_count)
+              return (
+                  <path
+                  stroke="black"
+                  strokeWidth={1}
+                  fill={"none"}
+                  // key={city}
+                  d={_lineMaker(li_count)}
+                />
+              )
+            // }
+          })}
+          {selectedPoint && <HoverText styles="z-index:1000; position: fixed; background-color:'red'"/>}
+          {/* number of views for each category*/}
+          {cats.map((cat, i) => {
+            return (
+              <text 
+                x={1250 - 70} 
+                y={43 + i * 23} 
+                fontSize={12}> 
+                  {cat_to_t_view[cat]} 
+              </text>
+            )
+          })}
+          {/* color point for each category */}
+          {cats.map((cat, i) => {
+            return (
+              <circle
+                id={'cat' + cat}
+                cx={1250} 
+                cy={40 + i * 23} 
+                r={selectedCatHover == 'cat' + cat ? 10 : 8} 
+                fill={ cat_cols[cat]} 
+                opacity={(selectedCats.includes(cat) || selectedCatHover == 'cat' + cat) ? 1.0:0.15}
+                stroke={(selectedCats.includes(cat) || selectedCatHover == 'cat' + cat) ? "black":"white"}
+                strokeWidth={1.5}
+                onClick={() => {
+                  setSelectedCats([cat])
+                  setSelectedPoints(getIndexByValue('categoryId', cat))
+                }}
+                onMouseOver={() => {
+                  setSelectedCatHover('cat' + cat)
+                }}
+                onMouseOut={() => {
+                  setSelectedCatHover(null)
+                }}
+              />
+            )
+           })}
+           {/* name for each category */}
+          {cats.map((cat, i) => {
+            return (
+              <text 
+                x={1250 + 20} 
+                y={43 + i * 23} 
+                fontSize={12}> 
+                  {cat_id_to_names[cat]} 
+              </text>
+            )
+          })}
+          {/* axises */}
+          <AxisLeft 
+            strokeWidth={1} 
+            left={70} 
+            top={10}
+            scale={_scaleY2} 
+            stroke={"black"}
+          />
+          <AxisBottom
+            strokeWidth={1}
+            top={580}
+            left={0}
+            scale={_scaleDate}
+            fontSize={25}
+            stroke={"black"}
+            // numTicks={11}
           />
           {/* text & labels */}
           <text x={1265} y={13}> Category </text>
