@@ -7,10 +7,8 @@ import React, {useState, useCallback} from "react";
 import usvideos_max from "./cleaned_df_max4";
 import usvideos_full from "./cleaned_df_full4";
 import Dotplot from "./Dotplot.jsx"
-import Linegraph from "./Linegraph.jsx"
-import Legend from "./Legend.jsx"
 
-function App() {
+function Linegraph() {
   var start = 0;
 
   const cat_cols = {
@@ -101,8 +99,8 @@ function App() {
     63
   ];
 
-  var [selectedCats, setSelectedCats] = useState(cats);
   var point = null;
+  var [selectedCats, setSelectedCats] = useState(cats);
   var [selectedPoint, setSelectedPoint] = useState(point);
   var points = Array.from(Array(usvideos_max.length).keys());
   var [selectedPoints, setSelectedPoints] = useState(points);
@@ -307,32 +305,56 @@ function App() {
   var videos_in_cat = get_unique_Column("video_id", usvideos_full);
   var all_unique_vids = get_unique_Column("video_id", usvideos_max)
 
-  var togglegraphval = true
-  var [togglegraph, settogglegraph] = useState(togglegraphval);
-
-
   return (
-    <div style={{ margin: 10 }}>
-      <div
-        style={{ display: "flex", alignItems: "center", paddingLeft: "20px" }}
-      >
-        {/* <img src="src/YouTube-Emblem.png" alt="YouTube logo" height="25px"/> */}
-        <h1 style={{ paddingLeft: "20px" }}>
-          YouTube Trending Videos | 2021
-        </h1>
-      </div>
       <div style={{ display: "flex" }}>
-        {togglegraph && <Dotplot />}
-        {!togglegraph && <Linegraph />}
-        <Legend />
+        <svg width={1150} height={650}>
+          {videos_in_cat.map((vid, id) => {
+              var vid_trends_ids = get_index_by_column_value("video_id", vid, usvideos_full);
+              var li_count = reformat_line(vid_trends_ids, usvideos_full);
+              return (
+                <path
+                  stroke={cat_cols[usvideos_full[vid_trends_ids[0]]['categoryId']]}
+                  strokeWidth={1.5}
+                  fill={"none"}
+                  // opacity={
+                  //   selectedCats.includes(cats[i]) || selectedCatHover == "cat" + cats[i]
+                  //     ? 1.0
+                  //     : 0.15
+                  // }
+                  // key={city}
+                  d={_lineMaker(li_count.sort())}
+                />
+              );
+            // })
+          })}
+          {/* axises */}
+          <AxisLeft
+            strokeWidth={1}
+            left={70}
+            top={10}
+            scale={_scaleY3}
+            stroke={"black"}
+          />
+          <AxisBottom
+            strokeWidth={1}
+            top={580}
+            left={0}
+            scale={_scaleX3}
+            fontSize={25}
+            stroke={"black"}
+            // numTicks={11}
+          />
+          <text x={1210} y={580}>
+            {" "}
+            Days{" "}
+          </text>
+          <text x={30} y={30}>
+            {" "}
+            Views{" "}
+          </text>
+        </svg>
       </div>
-      {/* <div> */}
-      <button type="button" onClick={() => { settogglegraph(!togglegraph) } }>O</button>
-      {/* </div> */}
-      {console.log(togglegraph)}
-      {/* togglegraph == true ? settogglegraph(false) :  */}
-    </div>
   );
 }
 
-export default App;
+export default Linegraph;
