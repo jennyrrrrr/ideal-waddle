@@ -305,6 +305,8 @@ function Dotplot() {
     var videos_in_cat = get_unique_Column("video_id", usvideos_full);
     var all_unique_vids = get_unique_Column("video_id", usvideos_max)
   
+    var selected_category_val = []
+    var {selected_category, set_selected_category} = useState(selected_category_val)
 
     return (
       <div style={{ display: "flex" }}>

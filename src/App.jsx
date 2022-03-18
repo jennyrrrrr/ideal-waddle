@@ -105,7 +105,13 @@ function App() {
   var point = null;
   var [selectedPoint, setSelectedPoint] = useState(point);
   var points = Array.from(Array(usvideos_max.length).keys());
+  // console.log(points)
   var [selectedPoints, setSelectedPoints] = useState(points);
+
+  // var lines = Array.from(Array(videos_in_cat.length).keys());
+  // // get_unique_Column("video_id", usvideos_full);
+  // // var lines = videos_in_cat;
+  // var [selectedLines, setSelectedLines] = useState(lines);
   var hover = null;
   var [selectedHover, setSelectedHover] = useState(hover);
   var catHover = null;
@@ -303,13 +309,47 @@ function App() {
     }
     return li;
   }
-  
+
   var videos_in_cat = get_unique_Column("video_id", usvideos_full);
+  // inxx = get_index_by_column_value('video_id', vid)
+  // usvideos_full[inxx]['cat']
+  // console.log(points)
+  // cat -> video(unique)
+
+  const unique_index_by_cat = {};
+  console.log('videos_in_cat', videos_in_cat)
+  var visited = []
+  for (var i = 0; i < usvideos_full.length; i += 1) {
+      if (!unique_index_by_cat[usvideos_full[i]["categoryId"]]) {
+        unique_index_by_cat[usvideos_full[i]["categoryId"]] = [];
+      }
+      if( !visited.includes(usvideos_full[i]['video_id'])) {
+        unique_index_by_cat[usvideos_full[i]["categoryId"]].push(i);
+      }
+      visited.push(usvideos_full[i]['video_id'])
+  }
+
   var all_unique_vids = get_unique_Column("video_id", usvideos_max)
 
   var togglegraphval = true
   var [togglegraph, settogglegraph] = useState(togglegraphval);
 
+  var dbselectedCategory = throttle(setSelectedCatHover, 1000);
+
+  var lines = Array.from(Array(videos_in_cat.length).keys());
+  // get_unique_Column("video_id", usvideos_full);
+  // var lines = videos_in_cat;
+  var [selectedLines, setSelectedLines] = useState(lines);
+  // console.log(lines)
+
+  // var vid_trends_ids = get_index_by_column_value("video_id", vid, usvideos_full);
+  var index_by_vid = {}
+  for (var i=0; i<usvideos_full.length; i += 1) {
+    if (!index_by_vid[usvideos_full[i]["video_id"]]) {
+      index_by_vid[usvideos_full[i]["video_id"]] = [];
+    }
+    index_by_vid[usvideos_full[i]["video_id"]].push(i)
+  }
 
   return (
     <div style={{ margin: 10 }}>
@@ -322,14 +362,130 @@ function App() {
         </h1>
       </div>
       <div style={{ display: "flex" }}>
-        {togglegraph && <Dotplot />}
-        {!togglegraph && <Linegraph />}
-        <Legend />
+        <div style={{ display: "flex" }}>
+          <svg width={1150} height={650}>
+            {videos_in_cat.map((vid, id) => {
+                // var vid_trends_ids = get_index_by_column_value("video_id", vid, usvideos_full);
+                var vid_trends_ids = index_by_vid[vid]
+                // console.log(vid_trends_ids)
+                var li_count = reformat_line(vid_trends_ids, usvideos_full);
+                if(id < 100) {
+                return (
+                  <path
+                    id={id}
+                    stroke={cat_cols[usvideos_full[vid_trends_ids[0]]['categoryId']]}
+                    strokeWidth={1.5}
+                    fill={"none"}
+                    opacity={
+                      selectedLines.includes(id) ? 1.0 : 0
+                    }
+                    d={_lineMaker(li_count.sort())}
+                  />
+                );
+                  }
+            })}
+            {/* axises */}
+            <AxisLeft
+              strokeWidth={1}
+              left={70}
+              top={10}
+              scale={_scaleY3}
+              stroke={"black"}
+            />
+            <AxisBottom
+              strokeWidth={1}
+              top={580}
+              left={0}
+              scale={_scaleX3}
+              fontSize={25}
+              stroke={"black"}
+              // numTicks={11}
+            />
+            <text x={1210} y={580}>
+              Days
+            </text>
+            <text x={30} y={30}>
+              Views
+            </text>
+          </svg>
+        </div>
+        <svg width={350} height={650}>
+          {/* number of views for each category*/}
+          {cats.map((cat, i) => {
+            return (
+              <text x={0} y={43 + i * 23} fontSize={12}>
+                {cat_to_t_view[cat]}
+              </text>
+            );
+          })}
+          {/* color point for each category */}
+          {cats.map((cat, i) => {
+            return (
+              <circle
+                id={"cat" + cat}
+                cx={80}
+                cy={40 + i * 23}
+                r={selectedCatHover == "cat" + cat ? 10 : 8}
+                fill={cat_cols[cat]}
+                opacity={
+                  selectedCats.includes(cat) || selectedCatHover == "cat" + cat
+                    ? 1.0
+                    : 0.15
+                }
+                stroke={
+                  selectedCats.includes(cat) || selectedCatHover == "cat" + cat
+                    ? "black"
+                    : "white"
+                }
+                strokeWidth={1.5}
+                onClick={() => {
+                  setSelectedCats([cat]);
+                  console.log('selectedCats', selectedCats)
+                  // setSelectedPoints(get_index_by_column_value("categoryId", cat, usvideos_max));
+                  console.log('selectedPoints', selectedPoints)
+                  setSelectedLines(unique_index_by_cat[cat]);
+                  console.log('selectedLines', selectedLines)
+                }}
+                onMouseOver={() => {
+                  // dbselectedCategory("cat" + cat);
+                  setSelectedCatHover("cat" + cat)
+                  console.log(selectedCatHover)
+                }}
+                onMouseOut={() => {
+                  // dbselectedCategory(null);
+                  console.log(selectedCatHover)
+                  setSelectedCatHover(null)
+                }}
+              />
+            );
+          })}
+          {/* name for each category */}
+          {cats.map((cat, i) => {
+            return (
+              <text x={80 + 20} y={43 + i * 23} fontSize={12}>
+                {cat_id_to_names[cat]}
+              </text>
+            );
+          })}
+          {/* text & labels */}
+          <text x={1265 - 1160} y={13}>
+            Category
+          </text>
+          <text x={100} y={43 + 15 * 23} fontSize={12}>
+            Reset
+          </text>
+          <text x={0} y={13}>
+            Total Views
+          </text>
+          <text x={1250 - 1160} y={13}>
+            |
+          </text>
+        </svg>
       </div>
       {/* <div> */}
       <button type="button" onClick={() => { settogglegraph(!togglegraph) } }>O</button>
       {/* </div> */}
-      {console.log(togglegraph)}
+      {/* {console.log(togglegraph)} */}
       {/* togglegraph == true ? settogglegraph(false) :  */}
     </div>
   );
